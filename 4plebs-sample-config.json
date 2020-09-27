@@ -1,0 +1,16 @@
+{
+  "metas": [
+    {
+      "name": "STORM",
+      "hash": "lol",
+      "directory": "/var/www/inb4sauce/html/",
+      "page": 1
+    },
+    {
+      "name": "BLACKBIRDS",
+      "hash": "cat",
+      "directory": "/var/www/inb4sauce/markers/blackbirds/html/",
+      "page": 1
+    },
+  ]
+}

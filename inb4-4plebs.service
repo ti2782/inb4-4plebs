@@ -1,0 +1,17 @@
+[Unit]
+Description=4plebs Crawler
+After=network.target
+
+[Service]
+Type=simple
+PIDFile=/run/inb4-4plebs.pid
+ExecStart=/bin/inb4-4plebs
+ExecReload=/bin/kill -s SIGHUP $MAINPID
+ExecStop=/bin/kill -s SIGHUP $MAINPID
+Restart=always
+KillSignal=SIGHUP
+User=root
+WorkingDirectory=/root
+
+[Install]
+WantedBy=multi-user.targeteven
