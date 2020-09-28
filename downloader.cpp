@@ -264,13 +264,29 @@ void Downloader::archiveThread(int threadnum)
 	      return;
 	    }
 	  rapidjson::Value& op = doc[key]["op"];
-	  std::string title, thumbnail;
+	  std::string title, thumbnail, opText;
+	  int opTimestamp, opNum;
 
+	  // Append Title to text for archive
 	  if(!op["title"].IsNull())
-	    title = op["title"].GetString();
+	    {
+	      title = op["title"].GetString();
+	      opText = title;
+	    }
+
+	  if(!op["comment"].IsNull())
+	    opText.append(op["comment"].GetString());
+
+	  if(!op["num"].IsNull())
+	    opNum = std::atoi(op["num"].GetString());
 
 	  if(!op["media"]["thumb_link"].IsNull())
 	    thumbnail = op["media"]["thumb_link"].GetString();
+
+	  if(!op["timestamp"].IsNull())
+	    opTimestamp = op["timestamp"].GetInt();
+
+	  db.addPost(opNum, opNum, opText.c_str(), opTimestamp, title.c_str(), thumbnail.c_str());
 	  
 	  if(!doc[key].HasMember("posts"))
 	    {
