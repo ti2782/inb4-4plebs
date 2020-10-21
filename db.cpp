@@ -91,7 +91,7 @@ void Db::addPost(int thread, int post, const char* text, int timestamp, const ch
   document << "thread" << thread
 	   << "post" << post
 	   << "txt" << text
-           << "timestamp" << bsoncxx::types::b_date{std::chrono::system_clock::from_time_t(timestamp)};
+           << "timestamp" << timestamp;
     
   coll.insert_one(document.view());
 
