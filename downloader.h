@@ -17,12 +17,12 @@ class Downloader
   Converter converter;
   Db db;
 
-  std::string downloadThread(const char* hash = NULL, int page = 1);
+  std::string searchThreads(const char* hash = NULL, int page = 1);
   bool threadToHTML(rapidjson::Document& doc, const char* fileName);
   void setLastUpdated(const char* directory);
   void setLastPage(const char* directory, int page);
   void archiveThreadNum(int threadnum);
-  void archiveThread(int threadnum);
+  void archiveThread(int threadnum, bool fallback = false);
   
  public:
   Downloader();

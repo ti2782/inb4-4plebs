@@ -82,7 +82,7 @@ void Db::addPost(int thread, int post, const char* text, int timestamp, const ch
   mongocxx::collection coll = db["posts"];
   mongocxx::collection threadcoll = db["threads"];
   bsoncxx::builder::stream::document document{};
-
+  
   bsoncxx::stdx::optional<bsoncxx::document::value> ret = coll.find_one(bsoncxx::builder::stream::document{} << "post" << post << finalize);
   if(ret) {
     return;

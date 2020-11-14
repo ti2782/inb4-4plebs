@@ -34,11 +34,12 @@ void Downloader::downloadThreads()
       const char* hash = meta.second->hash.c_str();
       int page = meta.second->page;
       int lastpage = 1;
+      int iDownloads = 0;
       
       std::cout << ">>INFO\nDownloading " << meta.first << std::endl;
       while(true)
 	{
-	  std::string buff = downloadThread(hash, page);
+	  std::string buff = searchThreads(hash, page);
 	  rapidjson::Document doc;
 	  doc.Parse(buff.c_str());
 	  
@@ -59,27 +60,31 @@ void Downloader::downloadThreads()
 		    {
 		      lastpage = page;
 		      page++;
+		      iDownloads++;
 		    }
 		}
 	    }
 	  else
 	    {
-	      std::cout << "<<WARNING\nDocument invalid." << std::endl;
+	      std::cout << "<<WARNING\nDocument invalid.\n" << buff << std::endl;
 	      std::this_thread::sleep_for(30s);
 	      break;
 	    }
 
 	  std::this_thread::sleep_for(30s);
 	}
-      
-      metaHandler.setPage(meta.first.c_str(), lastpage);
-      metaHandler.saveProgress();
-      setLastUpdated(meta.second->directory.c_str());
-      setLastPage(meta.second->directory.c_str(), lastpage);
+
+      if(iDownloads > 0)
+      	{
+	  metaHandler.setPage(meta.first.c_str(), lastpage);
+	  metaHandler.saveProgress();
+	  setLastUpdated(meta.second->directory.c_str());
+	  setLastPage(meta.second->directory.c_str(), lastpage);
+	}
     }
 }
 
-std::string Downloader::downloadThread(const char* hash, int page)
+std::string Downloader::searchThreads(const char* hash, int page)
 {
   std::string buff;
   
@@ -208,9 +213,10 @@ void Downloader::archiveThreadNum(int threadnum)
   db.addThread(threadnum);
 }
 
-void Downloader::archiveThread(int threadnum)
+void Downloader::archiveThread(int threadnum, bool fallback)
 {
   std::string buff;
+  std::string url;
   
   // Init Curl
   CURL* curl = curl_easy_init();
@@ -218,7 +224,11 @@ void Downloader::archiveThread(int threadnum)
   if(!curl)
     return;
 
-  std::string url(THREAD_URL);
+  if(fallback)
+    url.append(THREAD_URL_FALLBACK);
+  else
+    url.append(THREAD_URL);
+  
   url.append(std::to_string(threadnum));
   
   CURLcode res;
@@ -310,6 +320,15 @@ void Downloader::archiveThread(int threadnum)
 	    }
 	  
 	}
+      else
+	{
+	  std::cout << ">>WARNING\nFailed to Archive Thread " << threadnum << "\n" << buff << std::endl;
+	  if(!fallback)
+	    {
+	      std::cout << ">>INFO\nTrying Fallback URL" << std::endl;
+	      archiveThread(threadnum, true);
+	    }
+	}      
     }
 }
 

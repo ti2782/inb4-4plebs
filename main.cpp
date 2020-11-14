@@ -14,7 +14,7 @@ int main()
       auto start = std::chrono::steady_clock::now();
       for(auto end = std::chrono::steady_clock::now(); std::chrono::duration_cast<std::chrono::minutes>(end - start).count() < 30; end = std::chrono::steady_clock::now())
 	{
-       	  downloader.downloadThreads();
+	  downloader.downloadThreads();
 	}
       
       std::cout << ">>INFO\nStarting Archive Update..." << std::endl;
