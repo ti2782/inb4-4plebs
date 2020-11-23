@@ -12,7 +12,6 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 Downloader::Downloader()
 {
   curl_global_init(CURL_GLOBAL_ALL);
-  
 }
 
 Downloader::~Downloader()
@@ -32,6 +31,9 @@ void Downloader::downloadThreads()
   for( const auto& meta : metas)
     {
       const char* hash = meta.second->hash.c_str();
+      if(!meta.second->db.empty())
+	db.switchDB(meta.second->db.c_str());
+      
       int page = meta.second->page;
       int lastpage = 1;
       int iDownloads = 0;
@@ -244,6 +246,12 @@ void Downloader::archiveThread(int threadnum, bool fallback)
     {
       std::cout << curl_easy_strerror(res) << std::endl;
       curl_easy_cleanup(curl);
+      std::cout << ">>WARNING\nFailed to Archive Thread " << threadnum << "\n" << buff << std::endl;
+      if(!fallback)
+	{
+	  std::cout << ">>INFO\nTrying Fallback URL" << std::endl;
+	  archiveThread(threadnum, true);
+	}
       return;
     }
   else
@@ -257,10 +265,15 @@ void Downloader::archiveThread(int threadnum, bool fallback)
 	  if(doc.HasMember("error"))
 	    {
 	      std::cout << ">>WARNING\n" << doc["error"].GetString() << std::endl;
+	      if(!fallback)
+		{
+		  std::cout << ">>INFO\nTrying Fallback URL" << std::endl;
+		  archiveThread(threadnum, true);
+		}
 	      return;
 	    }
 	  const char* key = std::to_string(threadnum).c_str();
-	  
+
 	  if(!doc.HasMember(key))
 	    {
 	      std::cout << ">>WARNING\nNo thread in document" << std::endl;
@@ -326,6 +339,7 @@ void Downloader::archiveThread(int threadnum, bool fallback)
 	  if(!fallback)
 	    {
 	      std::cout << ">>INFO\nTrying Fallback URL" << std::endl;
+	      curl_easy_cleanup(curl);
 	      archiveThread(threadnum, true);
 	    }
 	}      
@@ -369,14 +383,34 @@ void Downloader::setLastPage(const char* directory, int page)
 
 void Downloader::archiveThreads(int limit)
 {
-  auto threadnums = db.getThreads(limit);
-  for(int i = 0; i < threadnums.size(); i++)
-    archiveThread(threadnums[i]);
+  metaHandler.populateMetaMap();
+  auto dbs = metaHandler.getDBs();
+  for(auto& database : dbs)
+    {
+      db.switchDB(database.second.c_str());
+      auto threadnums = db.getThreads(limit);
+      std::cout << ">>INFO\n" << "Downloading " << threadnums.size() << " threads from " << database.second << " database" << std::endl;
+      for(int i = 0; i < threadnums.size(); i++)
+	{
+	  archiveThread(threadnums[i]);
+	  std::this_thread::sleep_for(std::chrono::seconds(10));
+	}
+    }
 }
 
 void Downloader::archiveAllThreads()
 {
-  auto threadnums = db.getAllThreads();
-  for(int i = 0; i < threadnums.size(); i++)
-    archiveThread(threadnums[i]);
+  metaHandler.populateMetaMap();
+  auto dbs = metaHandler.getDBs();
+  for(auto& database : dbs)
+    {
+      db.switchDB(database.second.c_str());
+      auto threadnums = db.getAllThreads();
+      std::cout << ">>INFO\n" << "Downloading " << threadnums.size() << " threads from " << database.second << " database" << std::endl;
+      for(int i = 0; i < threadnums.size(); i++)
+	{
+	  archiveThread(threadnums[i]);
+	  std::this_thread::sleep_for(std::chrono::seconds(10));
+	}
+    }
 }

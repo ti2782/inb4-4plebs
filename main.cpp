@@ -3,12 +3,25 @@
 
 void terminate(int signal);
 
-int main()
+int main(int argc, char** argv)
 {
+  Downloader downloader;
+  
   // Register Terminate Signal Handler
   signal(SIGINT, terminate);
-  
-  Downloader downloader;
+
+  // Parse Arguments
+  if(argc > 1)
+    {
+      std::string arg(argv[1]);
+      if(arg.compare("-a") == 0)
+      {
+	std::cout << ">>INFO\nStarting Archive Update..." << std::endl;
+	downloader.archiveAllThreads();
+	return EXIT_SUCCESS;
+      }
+    }
+      
   while(true)
     {
       auto start = std::chrono::steady_clock::now();
@@ -18,9 +31,8 @@ int main()
 	}
       
       std::cout << ">>INFO\nStarting Archive Update..." << std::endl;
-      downloader.archiveThreads(10);
-      //downloader.archiveAllThreads();
-    }
+      downloader.archiveThreads(25);
+      }
   
   return EXIT_SUCCESS;
 }

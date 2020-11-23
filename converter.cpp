@@ -34,6 +34,9 @@ void Converter::addThreadCard(std::ofstream& f, ThreadCard* card)
 {
   if(!card)
     return;
+
+  sanitizeString(card->title);
+  sanitizeString(card->comment);
   
   f << "<div class=\"card bg-dark text-white\">" << std::endl <<
     "<img class=\"card-img-top\" src=\"" << card->thumb << "\" alt=\"Card image cap\">" << std::endl << 
@@ -45,4 +48,16 @@ void Converter::addThreadCard(std::ofstream& f, ThreadCard* card)
   
   endDiv(f); // card
   endDiv(f); // card-footer
+}
+
+void Converter::sanitizeString(std::string& text)
+{
+  for(std::size_t pos = text.find("<"); pos != std::string::npos; pos = text.find("<"))
+    {
+      std::size_t end = text.find(">", pos);
+      if(end != std::string::npos)
+	text.erase(pos, end + 1);
+      else
+	text.erase(pos, std::string::npos);
+    }
 }

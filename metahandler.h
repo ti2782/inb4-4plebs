@@ -12,7 +12,7 @@
 
 struct Meta
 {
-  std::string name, hash, directory;
+  std::string name, hash, directory, db;
   int page;
 };
 
@@ -20,6 +20,7 @@ class MetaHandler
 {
  private:
   std::unordered_map<std::string, Meta*> metaMap;
+  std::unordered_map<std::string, std::string> dbMap;
   rapidjson::Document doc;
   
  public:
@@ -29,6 +30,7 @@ class MetaHandler
   bool populateMetaMap();
   const char* urlFriendly(std::string hash);
   inline auto getMetas() {return metaMap;};
+  inline auto getDBs() {return dbMap;};
   void setPage(const char* meta, int page);
   void saveProgress();
 };

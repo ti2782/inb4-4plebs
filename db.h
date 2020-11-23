@@ -29,6 +29,7 @@ class Db
 {
  private:
   mongocxx::instance instance{}; // This should be done only once.
+  std::string dbName;
  public:
   Db();
   ~Db();
@@ -37,6 +38,8 @@ class Db
   void addPost(int thread, int post, const char* text, int timestamp, const char* title = NULL, const char* thumbnail = NULL);
   std::vector<int> getThreads(int limit = 10);
   std::vector<int> getAllThreads();
+
+  void switchDB(const char* db) { if(db) dbName.clear(); dbName = db; } ;
 };
 
 #endif

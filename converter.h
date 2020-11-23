@@ -28,7 +28,8 @@ class Converter
   void addRow(std::ofstream& f);
   void addContainer(std::ofstream& f);
   void endDiv(std::ofstream& f);
-  void addThreadCard(std::ofstream& f, ThreadCard* card = NULL);  
+  void addThreadCard(std::ofstream& f, ThreadCard* card = NULL);
+  void sanitizeString(std::string& text);
 };
 
 #endif

@@ -21,7 +21,7 @@ Db::~Db()
 void Db::addThread(int thread)
 {
   mongocxx::client client{mongocxx::uri{}};
-  mongocxx::database db = client["inb4"];
+  mongocxx::database db = client[dbName.c_str()];
   mongocxx::collection coll = db["threads"];
 
   bsoncxx::stdx::optional<bsoncxx::document::value> threadret = coll.find_one(document{} << "thread" << thread << finalize);
@@ -39,7 +39,7 @@ std::vector<int> Db::getThreads(int limit)
 {
   std::vector<int> ret;
   mongocxx::client client{mongocxx::uri{}};
-  mongocxx::database db = client["inb4"];
+  mongocxx::database db = client[dbName.c_str()];
   mongocxx::collection coll = db["threads"];
   auto order = document{} << "created_at" << -1 << finalize;
   auto opts = mongocxx::options::find{};
@@ -61,7 +61,7 @@ std::vector<int> Db::getAllThreads()
 {
   std::vector<int> ret;
   mongocxx::client client{mongocxx::uri{}};
-  mongocxx::database db = client["inb4"];
+  mongocxx::database db = client[dbName.c_str()];
   mongocxx::collection coll = db["threads"];
   
   mongocxx::cursor cursor = coll.find({});  
@@ -78,7 +78,7 @@ std::vector<int> Db::getAllThreads()
 void Db::addPost(int thread, int post, const char* text, int timestamp, const char* title, const char* thumbnail)
 {
   mongocxx::client client{mongocxx::uri{}};
-  mongocxx::database db = client["inb4"];
+  mongocxx::database db = client[dbName.c_str()];
   mongocxx::collection coll = db["posts"];
   mongocxx::collection threadcoll = db["threads"];
   bsoncxx::builder::stream::document document{};

@@ -66,9 +66,14 @@ bool MetaHandler::populateMetaMap()
       meta->directory = metaJson[i]["directory"].GetString();
     if(metaJson[i].HasMember("page"))
       meta->page = metaJson[i]["page"].GetInt();
+    if(metaJson[i].HasMember("db"))
+      meta->db = metaJson[i]["db"].GetString();
 
     if(!meta->name.empty() || !meta->hash.empty() || !meta->directory.empty())
       metaMap.insert({meta->name, meta});
+
+    if(!meta->name.empty() || !meta->db.empty())
+      dbMap.insert({meta->name, meta->db});
   }
   return true;
 }
