@@ -16,10 +16,22 @@ int main(int argc, char** argv)
       std::string arg(argv[1]);
       if(arg.compare("-a") == 0)
       {
-	std::cout << ">>INFO\nStarting Archive Update..." << std::endl;
-	downloader.archiveAllThreads();
-	return EXIT_SUCCESS;
+
+	if(argc > 2)
+	  {
+	    int numthreads = std::atoi(argv[2]);
+	    std::cout << ">>INFO\nStarting Archive Update with " << numthreads << " threads..." << std::endl;
+	    downloader.archiveThreads(numthreads);
+	    return EXIT_SUCCESS;
+	  }
+	else
+	  {
+	    std::cout << ">>INFO\nStarting Archive Update..." << std::endl;
+	    downloader.archiveAllThreads();
+	    return EXIT_SUCCESS;
+	  }
       }
+      
     }
       
   while(true)

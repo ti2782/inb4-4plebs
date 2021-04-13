@@ -9,6 +9,19 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
   return size * nmemb;
 }
 
+static size_t header_callback(char *buffer, size_t size,
+                              size_t nitems, void *userdata)
+{
+  /* received header is nitems * size long in 'buffer' NOT ZERO TERMINATED */
+  /* 'userdata' is set with CURLOPT_HEADERDATA */
+  if(userdata)
+    {
+      ((std::string*)buffer)->append((char*)userdata, size * nitems);
+      std::cout << ">>INFO\nHEADER: " << buffer << std::endl;
+    }
+  return nitems * size;
+}
+
 Downloader::Downloader()
 {
   curl_global_init(CURL_GLOBAL_ALL);
@@ -37,20 +50,28 @@ void Downloader::downloadThreads()
       int page = meta.second->page;
       int lastpage = 1;
       int iDownloads = 0;
-      
       std::cout << ">>INFO\nDownloading " << meta.first << std::endl;
       while(true)
 	{
 	  std::string buff = searchThreads(hash, page);
 	  rapidjson::Document doc;
 	  doc.Parse(buff.c_str());
+
+	  if(!doc.IsObject())
+	    {
+	      // Try Fallback
+	      std::cout << "<<WARNING\nDocument invalid.\n" << buff << "\n" << "Trying Fallback" << std::endl;   
+	      std::this_thread::sleep_for(45s);
+	      buff = searchThreads(hash, page, true);
+	      doc.Parse(buff.c_str());
+	    }
 	  
 	  if(doc.IsObject())
 	    {	  
 	      if(doc.HasMember("error"))
 		{
 		  std::cout << ">>WARNING\n" << doc["error"].GetString() << std::endl;
-		  std::this_thread::sleep_for(30s);
+		  std::this_thread::sleep_for(45s);
 		  break;		  
 		}
 	      else
@@ -68,12 +89,12 @@ void Downloader::downloadThreads()
 	    }
 	  else
 	    {
-	      std::cout << "<<WARNING\nDocument invalid.\n" << buff << std::endl;
-	      std::this_thread::sleep_for(30s);
+	      std::cout << ">>WARNING\n" << buff << std::endl;
+	      std::this_thread::sleep_for(45s);
 	      break;
 	    }
 
-	  std::this_thread::sleep_for(30s);
+	  std::this_thread::sleep_for(45s);
 	}
 
       if(iDownloads > 0)
@@ -86,7 +107,7 @@ void Downloader::downloadThreads()
     }
 }
 
-std::string Downloader::searchThreads(const char* hash, int page)
+std::string Downloader::searchThreads(const char* hash, int page, bool fallback)
 {
   std::string buff;
   
@@ -96,16 +117,22 @@ std::string Downloader::searchThreads(const char* hash, int page)
   if(!curl || !hash)
     return buff;
 
-  std::string url(SEARCH_URL);
+  std::string url;
+  if(!fallback)
+    url = SEARCH_URL;
+  else
+    url = SEARCH_URL_FALLBACK;
   url.append("&image=");
   url.append(hash);
   url.append("&page=");
   url.append(std::to_string(page));
   
   CURLcode res;
-
+  
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str()); // URL
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "inb4sauce.net bot. Contact @Inb4Sauce");
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buff);
 
   std::cout << ">>INFO\nDownloading Page: " << page << std::endl;
@@ -113,15 +140,19 @@ std::string Downloader::searchThreads(const char* hash, int page)
   res = curl_easy_perform(curl);
   if(res != CURLE_OK)
     {
-      std::cout << curl_easy_strerror(res) << std::endl;
-      curl_easy_cleanup(curl);
-      return buff;
+      std::cout << ">>WARNING\n" << curl_easy_strerror(res) << std::endl;
+      if( res == 429 )
+	std::cout << ">>WARNING\nTIMEOUT" << std::endl;
+      if(!fallback)
+	{
+	  std::cout << "Trying Fallback" << std::endl;
+	  curl_easy_cleanup(curl);
+	  return searchThreads(hash, page, true);
+	}
     }
-  else
-    {
-      curl_easy_cleanup(curl);
-      return buff;
-    }
+  
+  curl_easy_cleanup(curl);
+  return buff;
 }
 
 bool Downloader::threadToHTML(rapidjson::Document& doc, const char* fileName)
@@ -236,7 +267,9 @@ void Downloader::archiveThread(int threadnum, bool fallback)
   CURLcode res;
 
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str()); // URL
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "inb4sauce.net bot. Contact @Inb4Sauce");
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buff);
 
   std::cout << ">>INFO\nDownloading Thread: " << threadnum << std::endl;
@@ -257,6 +290,7 @@ void Downloader::archiveThread(int threadnum, bool fallback)
   else
     {
       curl_easy_cleanup(curl);
+      
       
       rapidjson::Document doc;
       doc.Parse(buff.c_str());      
@@ -339,7 +373,6 @@ void Downloader::archiveThread(int threadnum, bool fallback)
 	  if(!fallback)
 	    {
 	      std::cout << ">>INFO\nTrying Fallback URL" << std::endl;
-	      curl_easy_cleanup(curl);
 	      archiveThread(threadnum, true);
 	    }
 	}      
@@ -387,13 +420,13 @@ void Downloader::archiveThreads(int limit)
   auto dbs = metaHandler.getDBs();
   for(auto& database : dbs)
     {
-      db.switchDB(database.second.c_str());
+      db.switchDB(database.c_str());
       auto threadnums = db.getThreads(limit);
-      std::cout << ">>INFO\n" << "Downloading " << threadnums.size() << " threads from " << database.second << " database" << std::endl;
+      std::cout << ">>INFO\n" << "Downloading " << threadnums.size() << " threads from " << database << " database" << std::endl;
       for(int i = 0; i < threadnums.size(); i++)
 	{
 	  archiveThread(threadnums[i]);
-	  std::this_thread::sleep_for(std::chrono::seconds(10));
+	  std::this_thread::sleep_for(std::chrono::seconds(15));
 	}
     }
 }
@@ -404,13 +437,13 @@ void Downloader::archiveAllThreads()
   auto dbs = metaHandler.getDBs();
   for(auto& database : dbs)
     {
-      db.switchDB(database.second.c_str());
+      db.switchDB(database.c_str());
       auto threadnums = db.getAllThreads();
-      std::cout << ">>INFO\n" << "Downloading " << threadnums.size() << " threads from " << database.second << " database" << std::endl;
+      std::cout << ">>INFO\n" << "Downloading " << threadnums.size() << " threads from " << database << " database" << std::endl;
       for(int i = 0; i < threadnums.size(); i++)
 	{
 	  archiveThread(threadnums[i]);
-	  std::this_thread::sleep_for(std::chrono::seconds(10));
+	  std::this_thread::sleep_for(std::chrono::seconds(15));
 	}
     }
 }

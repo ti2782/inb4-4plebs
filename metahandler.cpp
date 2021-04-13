@@ -72,8 +72,8 @@ bool MetaHandler::populateMetaMap()
     if(!meta->name.empty() || !meta->hash.empty() || !meta->directory.empty())
       metaMap.insert({meta->name, meta});
 
-    if(!meta->name.empty() || !meta->db.empty())
-      dbMap.insert({meta->name, meta->db});
+    if(!meta->db.empty())
+      dbMap.insert(meta->db);
   }
   return true;
 }

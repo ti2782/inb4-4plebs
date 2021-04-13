@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <unordered_map>
+#include <set>
 #include "config.h"
 
 struct Meta
@@ -20,7 +21,7 @@ class MetaHandler
 {
  private:
   std::unordered_map<std::string, Meta*> metaMap;
-  std::unordered_map<std::string, std::string> dbMap;
+  std::set<std::string> dbMap;
   rapidjson::Document doc;
   
  public:

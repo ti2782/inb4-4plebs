@@ -17,7 +17,7 @@ class Downloader
   Converter converter;
   Db db;
 
-  std::string searchThreads(const char* hash = NULL, int page = 1);
+  std::string searchThreads(const char* hash = NULL, int page = 1, bool fallback = false);
   bool threadToHTML(rapidjson::Document& doc, const char* fileName);
   void setLastUpdated(const char* directory);
   void setLastPage(const char* directory, int page);
